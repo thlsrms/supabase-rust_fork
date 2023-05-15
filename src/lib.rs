@@ -1,4 +1,4 @@
-use reqwest::{Client};
+use reqwest::Client;
 
 mod auth;
 mod client;
@@ -10,4 +10,5 @@ pub struct Supabase {
     api_key: String,
     jwt: String,
     bearer_token: Option<String>,
+    db: postgrest::Postgrest,
 }
