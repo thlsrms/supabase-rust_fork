@@ -1,5 +1,6 @@
-use std::{env};
-use reqwest::{Client};
+use postgrest::Postgrest;
+use reqwest::Client;
+use std::env;
 
 use crate::Supabase;
 
@@ -17,6 +18,7 @@ impl Supabase {
         let jwt: String = jwt
             .map(String::from)
             .unwrap_or_else(|| env::var("SUPABASE_JWT_SECRET").unwrap_or_else(|_| String::new()));
+        let db: Postgrest = Postgrest::new(&url).insert_header("apikey", &api_key);
 
         Supabase {
             client,
@@ -24,6 +26,7 @@ impl Supabase {
             api_key: api_key.to_string(),
             jwt: jwt.to_string(),
             bearer_token: None,
+            db,
         }
     }
 }
@@ -39,3 +42,4 @@ mod tests {
         assert!(client.url == url);
     }
 }
+
