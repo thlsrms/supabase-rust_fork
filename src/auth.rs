@@ -87,9 +87,8 @@ impl Supabase {
         Ok(response)
     }
 
-    pub async fn logout(&self) -> Result<Response, Error> {
+    pub async fn logout(&self, token: String) -> Result<Response, Error> {
         let request_url: String = format!("{}/auth/v1/logout", self.url);
-        let token = self.bearer_token.clone().unwrap();
         let response: Response = self
             .client
             .post(&request_url)
@@ -174,7 +173,10 @@ mod tests {
         let mut client: Supabase = client().await;
         client.bearer_token = Some(access_token.to_string());
 
-        let response: Response = client.logout().await.unwrap();
+        let response: Response = client
+            .logout(client.bearer_token.clone().unwrap())
+            .await
+            .unwrap();
 
         assert!(response.status() == 204);
     }
