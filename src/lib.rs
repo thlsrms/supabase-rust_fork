@@ -8,7 +8,6 @@ mod db;
 pub struct Supabase {
     client: Client,
     url: String,
-    api_key: String,
     jwt: String,
     bearer_token: Option<String>,
 }

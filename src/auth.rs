@@ -64,8 +64,6 @@ impl Supabase {
         let response: Response = self
             .client
             .post(&request_url)
-            .header("apikey", &self.api_key)
-            .header("Content-Type", "application/json")
             .json(&Password {
                 email: email.to_string(),
                 password: password.to_string(),
@@ -81,8 +79,6 @@ impl Supabase {
         let response: Response = self
             .client
             .post(&request_url)
-            .header("apikey", &self.api_key)
-            .header("Content-Type", "application/json")
             .json(&RefreshToken {
                 refresh_token: refresh_token.to_string(),
             })
@@ -97,8 +93,6 @@ impl Supabase {
         let response: Response = self
             .client
             .post(&request_url)
-            .header("apikey", &self.api_key)
-            .header("Content-Type", "application/json")
             .bearer_auth(token)
             .send()
             .await?;
@@ -114,8 +108,6 @@ impl Supabase {
         let response: Response = self
             .client
             .post(&request_url)
-            .header("apikey", &self.api_key)
-            .header("Content-Type", "application/json")
             .json(&Password {
                 email: email.to_string(),
                 password: password.to_string(),
