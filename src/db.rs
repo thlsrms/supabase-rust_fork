@@ -1,7 +1,7 @@
 use crate::Supabase;
 
 impl Supabase {
-    pub fn fetch(&self) -> &postgrest::Postgrest {
+    pub fn db(&self) -> &postgrest::Postgrest {
         &self.db
     }
 }
