@@ -18,6 +18,7 @@ pub struct RefreshToken {
 }
 
 impl Supabase {
+    /// Validate a Jwt authorization token and return its Claims if succeful
     pub async fn jwt_valid(&self, jwt: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
         let decoded_token = decode::<Claims>(
             jwt,
@@ -25,6 +26,22 @@ impl Supabase {
             &Validation::new(Algorithm::HS256),
         );
 
+        match decoded_token {
+            Ok(token_data) => Ok(token_data.claims),
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Validate a Jwt authorization token and return its Custom Claims if succeful
+    pub async fn custom_jwt_valid<T>(&self, jwt: &str) -> Result<T, jsonwebtoken::errors::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let decoded_token = decode::<T>(
+            jwt,
+            &self.jwt_decoding_key,
+            &Validation::new(Algorithm::HS256),
+        );
 
         match decoded_token {
             Ok(token_data) => Ok(token_data.claims),
