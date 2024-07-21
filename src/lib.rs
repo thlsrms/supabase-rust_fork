@@ -8,8 +8,7 @@ pub mod schema;
 mod utils;
 
 pub use errors::{AuthError, Error, ErrorKind, JwtErrorKind, PostgrestError};
-pub use postgrest::parse_response;
-pub use utils::parse_value;
+pub use utils::{parse_response, parse_value};
 
 #[derive(Clone)]
 pub struct Supabase {

@@ -2,7 +2,7 @@ use jsonwebtoken::{decode, Algorithm, Validation};
 use reqwest::Response;
 use serde::{Deserialize, Serialize};
 
-use crate::errors::Error;
+use crate::errors::{AuthError, Error, ErrorKind};
 use crate::schema::{AccessToken, Claims, User};
 use crate::Supabase;
 
@@ -18,12 +18,12 @@ pub struct RefreshToken {
 }
 
 impl Supabase {
-    /// Validate a Jwt authorization token and return its Claims if succeful
+    /// Validate a Jwt authorization token and return its Claims if successful
     pub async fn jwt_valid(&self, jwt: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
         self.custom_jwt_valid::<Claims>(jwt).await
     }
 
-    /// Validate a Jwt authorization token and return its Custom Claims if succeful
+    /// Validate a Jwt authorization token and return its Custom Claims if successful
     pub async fn custom_jwt_valid<T>(&self, jwt: &str) -> Result<T, jsonwebtoken::errors::Error>
     where
         T: serde::de::DeserializeOwned,
@@ -117,12 +117,55 @@ async fn parse_auth_response<T>(response: Result<Response, reqwest::Error>) -> R
 where
     T: serde::de::DeserializeOwned,
 {
-    Ok(
-        crate::utils::parse_response(response, crate::utils::Parse::Auth)
-            .await?
-            .auth()
-            .unwrap(),
-    )
+    fn auth_error(code: u16, msg: &str) -> Error {
+        Error {
+            http_status: code,
+            kind: ErrorKind::Auth(AuthError {
+                code: Some(code),
+                msg: Some(msg.to_string()),
+                ..Default::default()
+            }),
+        }
+    }
+
+    match response {
+        Ok(res) if res.status().as_u16() > 399 => {
+            let res_status_code = res.status().as_u16();
+            match res.json::<AuthError>().await {
+                Ok(res) => Err(Error {
+                    http_status: res_status_code,
+                    kind: ErrorKind::Auth(AuthError { ..res }),
+                }),
+                Err(e) => Err(auth_error(
+                    500,
+                    &format!("Error deserializing error: {e:?}"),
+                )),
+            }
+        }
+        Ok(res) => match res.json::<T>().await {
+            Ok(value) => Ok(value),
+            Err(e) => Err(auth_error(
+                500,
+                &format!("Error deserializing response: {e:?}"),
+            )),
+        },
+
+        Err(e) => match e.status() {
+            Some(status) => Err(auth_error(
+                status.as_u16(),
+                &format!("An unexpected error occurred: {e:?}"),
+            )),
+            None => Err(auth_error(
+                500,
+                &format!(
+                    "Ensure the client is initialized correctly \
+                            and the environment variables are properly set: \
+                            SUPABASE_URL, SUPABASE_API_KEY, SUPABASE_JWT_SECRET. \
+                        error: {e:?}"
+                ),
+            )),
+        },
+    }
 }
 
 #[cfg(test)]
@@ -224,4 +267,3 @@ mod tests {
         assert!(response.is_ok());
     }
 }
-
