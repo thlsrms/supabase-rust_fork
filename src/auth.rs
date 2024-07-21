@@ -1,7 +1,9 @@
-use jsonwebtoken::{DecodingKey, Validation, Algorithm, decode};
-use reqwest::{Error, Response};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use reqwest::Response;
 use serde::{Deserialize, Serialize};
 
+use crate::errors::Error;
+use crate::schema::{AccessToken, Claims};
 use crate::Supabase;
 
 #[derive(Serialize, Deserialize)]
@@ -15,28 +17,8 @@ pub struct RefreshToken {
     refresh_token: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Claims {
-    pub sub: String,
-    pub email: String,
-    pub exp: usize,
-}
-
-impl Clone for Claims {
-    fn clone(&self) -> Self {
-        Self {
-            sub: self.sub.clone(),
-            email: self.email.clone(),
-            exp: self.exp,
-        }
-    }
-}
-
 impl Supabase {
-    pub async fn jwt_valid(
-        &self,
-        jwt: &str,
-    ) -> Result<Claims, jsonwebtoken::errors::Error> {
+    pub async fn jwt_valid(&self, jwt: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
         let secret = self.jwt.clone();
 
         let decoding_key = DecodingKey::from_secret(secret.as_ref()).into();
@@ -59,9 +41,9 @@ impl Supabase {
         &self,
         email: &str,
         password: &str,
-    ) -> Result<Response, Error> {
+    ) -> Result<AccessToken, Error> {
         let request_url: String = format!("{}/auth/v1/token?grant_type=password", self.url);
-        let response: Response = self
+        let response = self
             .client
             .post(&request_url)
             .json(&Password {
@@ -69,42 +51,42 @@ impl Supabase {
                 password: password.to_string(),
             })
             .send()
-            .await?;
-        Ok(response)
+            .await;
+        parse_auth_response::<AccessToken>(response).await
     }
 
     // This test will fail unless you disable "Enable automatic reuse detection" in Supabase
-    pub async fn refresh_token(&self, refresh_token: &str) -> Result<Response, Error> {
+    pub async fn refresh_token(&self, refresh_token: &str) -> Result<AccessToken, Error> {
         let request_url: String = format!("{}/auth/v1/token?grant_type=refresh_token", self.url);
-        let response: Response = self
+        let response = self
             .client
             .post(&request_url)
             .json(&RefreshToken {
                 refresh_token: refresh_token.to_string(),
             })
             .send()
-            .await?;
-        Ok(response)
+            .await;
+        parse_auth_response::<AccessToken>(response).await
     }
 
-    pub async fn logout(&self, token: String) -> Result<Response, Error> {
+    pub async fn logout(&self, token: String) -> Result<(), Error> {
         let request_url: String = format!("{}/auth/v1/logout", self.url);
-        let response: Response = self
+        let response = self
             .client
             .post(&request_url)
             .bearer_auth(token)
             .send()
-            .await?;
-        Ok(response)
+            .await;
+        parse_auth_response::<()>(response).await
     }
 
     pub async fn signup_email_password(
         &self,
         email: &str,
         password: &str,
-    ) -> Result<Response, Error> {
+    ) -> Result<AccessToken, Error> {
         let request_url: String = format!("{}/auth/v1/signup", self.url);
-        let response: Response = self
+        let response = self
             .client
             .post(&request_url)
             .json(&Password {
@@ -112,78 +94,92 @@ impl Supabase {
                 password: password.to_string(),
             })
             .send()
-            .await?;
-        Ok(response)
+            .await;
+        parse_auth_response::<AccessToken>(response).await
     }
+}
+
+/// Parse the response into one of the types defined in the `schema` module
+async fn parse_auth_response<T>(response: Result<Response, reqwest::Error>) -> Result<T, Error>
+where
+    T: serde::de::DeserializeOwned,
+{
+    Ok(
+        crate::utils::parse_response(response, crate::utils::Parse::Auth)
+            .await?
+            .auth()
+            .unwrap(),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schema::AccessToken;
 
     async fn client() -> Supabase {
         Supabase::new(None, None, None)
     }
 
-    async fn sign_in_password() -> Response {
+    async fn sign_in_password() -> Result<AccessToken, Error> {
         let client: Supabase = client().await;
 
-        let test_email: String = std::env::var("SUPABASE_TEST_EMAIL").unwrap_or_else(|_| String::new());
-        let test_pass: String= std::env::var("SUPABASE_TEST_PASS").unwrap_or_else(|_| String::new());
-        client.sign_in_password(&test_email, &test_pass).await.unwrap()
+        let test_email: String =
+            std::env::var("SUPABASE_TEST_EMAIL").unwrap_or_else(|_| String::new());
+        let test_pass: String =
+            std::env::var("SUPABASE_TEST_PASS").unwrap_or_else(|_| String::new());
+        client.sign_in_password(&test_email, &test_pass).await
     }
 
     #[tokio::test]
     async fn test_token_with_password() {
-        let response: Response = sign_in_password().await;
+        let response: AccessToken = sign_in_password().await.unwrap();
 
-        let json_response: serde_json::Value = response.json().await.unwrap();
-        let token: &str = json_response["access_token"].as_str().unwrap();
-        let refresh_token: &str = json_response["refresh_token"].as_str().unwrap();
+        let token: &str = response.access_token.as_str();
+        let refresh_token: &str = response.refresh_token.as_str();
 
-        assert!(token.len() > 0);
-        assert!(refresh_token.len() > 0);
+        assert!(!token.is_empty());
+        assert!(!refresh_token.is_empty());
     }
 
     #[tokio::test]
     async fn test_refresh() {
-        let response: Response = sign_in_password().await;
+        let response = sign_in_password().await.unwrap();
 
-        let json_response: serde_json::Value = response.json().await.unwrap();
-        let refresh_token: &str = json_response["refresh_token"].as_str().unwrap();
+        let refresh_token: &str = response.refresh_token.as_str();
 
-        let response: Response = client().await.refresh_token(&refresh_token).await.unwrap();
-        if response.status() == 400 {
-            println!("Skipping test_refresh() because automatic reuse detection is enabled in Supabase");
-            return;
+        let response = client().await.refresh_token(refresh_token).await;
+        match response {
+            Ok(res) => {
+                let token: &str = res.access_token.as_str();
+
+                assert!(!token.is_empty());
+            }
+            Err(_) => {
+                println!(
+                "Skipping test_refresh() because automatic reuse detection is enabled in Supabase"
+            );
+                return;
+            }
         }
-
-        let json_response: serde_json::Value = response.json().await.unwrap();
-        let token: &str = json_response["access_token"].as_str().unwrap();
-
-        assert!(token.len() > 0);
     }
 
     #[tokio::test]
     async fn test_logout() {
-        let response: Response = sign_in_password().await;
+        let response: AccessToken = sign_in_password().await.unwrap();
 
-        let json_response: serde_json::Value = response.json().await.unwrap();
-        let access_token: &str = json_response["access_token"].as_str().unwrap();
+        let access_token: &str = response.access_token.as_str();
         let mut client: Supabase = client().await;
         client.bearer_token = Some(access_token.to_string());
 
-        let response: Response = client
-            .logout(client.bearer_token.clone().unwrap())
-            .await
-            .unwrap();
+        let response = client.logout(client.bearer_token.clone().unwrap()).await;
 
-        assert!(response.status() == 204);
+        assert!(response.is_ok());
     }
 
     #[tokio::test]
     async fn test_signup_email_password() {
-        use rand::{thread_rng, Rng, distributions::Alphanumeric};
+        use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
         let client: Supabase = client().await;
 
@@ -197,30 +193,22 @@ mod tests {
         let random_pass: String = rand_string;
 
         let test_email: String = random_email;
-        let test_pass: String= random_pass;
-        let response: Response = client.signup_email_password(&test_email, &test_pass).await.unwrap();
+        let test_pass: String = random_pass;
+        let response = client.signup_email_password(&test_email, &test_pass).await;
 
-        assert!(response.status() == 200);
+        assert!(response.is_ok());
     }
 
     #[tokio::test]
     async fn test_authenticate_token() {
         let client: Supabase = client().await;
-        let response: Response = sign_in_password().await;
+        let response: AccessToken = sign_in_password().await.unwrap();
 
-        let json_response: serde_json::Value = response.json().await.unwrap();
-        let token: &str = json_response["access_token"].as_str().unwrap();
+        let token: &str = response.access_token.as_str();
 
         let response = client.jwt_valid(token).await;
 
-        match response {
-            Ok(_) => {
-                assert!(true);
-            },
-            Err(_) => {
-                assert!(false);
-            }
-        }
+        assert!(response.is_ok());
     }
-
 }
+
