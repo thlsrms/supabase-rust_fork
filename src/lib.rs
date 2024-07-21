@@ -1,12 +1,13 @@
 use reqwest::Client;
 
-pub mod auth;
+pub(crate) mod auth;
 mod client;
 mod errors;
 mod postgrest;
-mod schema;
+pub mod schema;
 mod utils;
 
+pub use errors::{AuthError, Error, ErrorKind, PostgrestError};
 pub use postgrest::parse_response;
 pub use utils::parse_value;
 
