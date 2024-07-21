@@ -1,5 +1,13 @@
 use crate::errors::{AuthError, Error, ErrorKind, PostgrestError};
 
+/// Re-export of `serde_json`'s `from_value` function
+pub fn parse_value<T>(user_metadata: serde_json::Value) -> Result<T, serde_json::error::Error>
+where
+    T: serde::de::DeserializeOwned,
+{
+    serde_json::from_value::<T>(user_metadata)
+}
+
 pub(crate) enum Parse {
     Auth,
     Postgrest,

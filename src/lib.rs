@@ -8,6 +8,7 @@ mod schema;
 mod utils;
 
 pub use postgrest::parse_response;
+pub use utils::parse_value;
 
 #[derive(Clone)]
 pub struct Supabase {

@@ -56,6 +56,10 @@ pub struct User {
     pub app_metadata: AppMetadata,
 
     /// User metadata is stored on the `raw_user_meta_data` column of the `auth.users` table.
+    /// Type deserialized as `serde_json::Value`'s `Object` so it can be parsed based on the data stored.
+    /// ```rust
+    ///supabase_rust::parse_value::<MyUserMetadata>(...)
+    /// ```
     pub user_metadata: serde_json::Value,
 
     pub factors: Option<Vec<MFAFactorSchema>>,
