@@ -14,6 +14,7 @@ pub struct Supabase {
     client: Client,
     url: String,
     jwt: String,
+    jwt_decoding_key: jsonwebtoken::DecodingKey,
     bearer_token: Option<String>,
     postgrest_client: ::postgrest::Postgrest,
 }

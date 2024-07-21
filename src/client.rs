@@ -1,3 +1,4 @@
+use jsonwebtoken::DecodingKey;
 use postgrest::Postgrest;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
@@ -36,6 +37,7 @@ impl Supabase {
             client,
             url: url.to_string(),
             jwt: jwt.to_string(),
+            jwt_decoding_key: DecodingKey::from_secret(jwt.as_ref()),
             bearer_token: None,
             postgrest_client: postgrest,
         }

@@ -1,4 +1,4 @@
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use jsonwebtoken::{decode, Algorithm, Validation};
 use reqwest::Response;
 use serde::{Deserialize, Serialize};
 
@@ -19,21 +19,16 @@ pub struct RefreshToken {
 
 impl Supabase {
     pub async fn jwt_valid(&self, jwt: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
-        let secret = self.jwt.clone();
+        let decoded_token = decode::<Claims>(
+            jwt,
+            &self.jwt_decoding_key,
+            &Validation::new(Algorithm::HS256),
+        );
 
-        let decoding_key = DecodingKey::from_secret(secret.as_ref()).into();
-        let validation = Validation::new(Algorithm::HS256);
-        let decoded_token = decode::<Claims>(&jwt, &decoding_key, &validation);
 
         match decoded_token {
-            Ok(token_data) => {
-                println!("Token is valid. Claims: {:?}", token_data.claims);
-                Ok(token_data.claims)
-            }
-            Err(err) => {
-                println!("Error decoding token: {:?}", err);
-                Err(err)
-            }
+            Ok(token_data) => Ok(token_data.claims),
+            Err(err) => Err(err),
         }
     }
 
