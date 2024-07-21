@@ -2,10 +2,12 @@ use reqwest::Client;
 
 pub mod auth;
 mod client;
-mod db;
 mod errors;
+mod postgrest;
 mod schema;
 mod utils;
+
+pub use postgrest::parse_response;
 
 #[derive(Clone)]
 pub struct Supabase {
@@ -13,7 +15,7 @@ pub struct Supabase {
     url: String,
     jwt: String,
     bearer_token: Option<String>,
-    db: postgrest::Postgrest,
+    postgrest_client: ::postgrest::Postgrest,
 }
 
 impl std::fmt::Debug for Supabase {

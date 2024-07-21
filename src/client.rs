@@ -20,11 +20,11 @@ impl Supabase {
         let jwt: String = jwt
             .map(String::from)
             .unwrap_or_else(|| env::var("SUPABASE_JWT_SECRET").unwrap_or_else(|_| String::new()));
-        let db: Postgrest = Postgrest::new(format!("{}/rest/v1/", url.to_owned()))
-            .insert_header("apikey", &api_key);
+        let postgrest: Postgrest =
+            Postgrest::new(format!("{}/rest/v1", url.to_owned())).insert_header("apikey", &api_key);
 
         let mut default_headers = HeaderMap::new();
-        default_headers.insert("apikey", HeaderValue::from_str(api_key.as_ref()).unwrap());
+        default_headers.insert("apikey", HeaderValue::from_str(&api_key).unwrap());
         default_headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
         let client = ClientBuilder::new()
@@ -37,7 +37,7 @@ impl Supabase {
             url: url.to_string(),
             jwt: jwt.to_string(),
             bearer_token: None,
-            db,
+            postgrest_client: postgrest,
         }
     }
 }
