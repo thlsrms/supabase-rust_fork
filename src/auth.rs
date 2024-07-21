@@ -3,7 +3,7 @@ use reqwest::Response;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::Error;
-use crate::schema::{AccessToken, Claims};
+use crate::schema::{AccessToken, Claims, User};
 use crate::Supabase;
 
 #[derive(Serialize, Deserialize)]
@@ -108,6 +108,18 @@ impl Supabase {
             .send()
             .await;
         parse_auth_response::<AccessToken>(response).await
+    }
+
+    /// Fetch the latest user account information
+    pub async fn get_user(&self, token: &str) -> Result<User, Error> {
+        let request_url: String = format!("{}/auth/v1/user", self.url);
+        let response = self
+            .client
+            .get(&request_url)
+            .bearer_auth(token.to_owned())
+            .send()
+            .await;
+        parse_auth_response::<User>(response).await
     }
 }
 
