@@ -2,6 +2,8 @@ use thiserror::Error;
 
 use crate::schema::WeakPassword;
 
+pub use jsonwebtoken::errors::ErrorKind as JwtErrorKind;
+
 #[derive(serde::Deserialize, Debug, Error)]
 #[error("Supabase Error {{ http_status code: {http_status}, ErrorKind: {kind} }}")]
 pub struct Error {
