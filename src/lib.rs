@@ -2,12 +2,11 @@ use reqwest::Client;
 
 pub(crate) mod auth;
 mod client;
-mod errors;
+pub mod errors;
 mod postgrest;
 pub mod schema;
 mod utils;
 
-pub use errors::{AuthError, Error, ErrorKind, JwtErrorKind, PostgrestError};
 pub use utils::{parse_response, parse_value};
 
 #[derive(Clone)]
