@@ -40,7 +40,7 @@ where
                 }
             };
 
-            if res_status_code != 200 {
+            if res_status_code > 299 {
                 return match serde_json::from_value::<PostgrestError>(body) {
                     Ok(err) => Err(Error {
                         http_status: res_status_code,
