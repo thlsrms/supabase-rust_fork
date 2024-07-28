@@ -30,7 +30,10 @@ pub struct OAuthOptions {
 /// S256 (where SHA-256 is used):
 ///     - code_challenge = BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
 ///
-/// It has to be between 43 and 128 characters.
+/// code_verifier = high-entropy cryptographic random STRING using the unreserved characters
+/// that are allowed in a URI `[A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~"`
+/// with a minimum length of 43 characters and a maximum length of 128 characters.
+///
 /// The `exchange_code_for_session` function can be used to verify the `auth_code` received
 /// from the OAuth provider and exchange for an `AccessToken`.
 ///
