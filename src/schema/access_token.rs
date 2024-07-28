@@ -25,6 +25,12 @@ pub struct AccessToken {
     pub weak_password: Option<WeakPassword>,
 
     pub user: super::User,
+
+    /// Available when authenticating through OAuth
+    pub provider_token: Option<String>,
+
+    /// Available when authenticating through OAuth
+    pub provider_refresh_token: Option<String>,
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]

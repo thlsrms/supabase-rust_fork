@@ -113,7 +113,11 @@ pub struct Identity {
     /// format: uuid
     pub user_id: String,
 
-    pub identity_data: IdentityData,
+    /// Type deserialized as `serde_json::Value`'s `Object` so it can be parsed based on the data stored.
+    /// ```rust
+    ///supabase_rust::parse_value::<MyOAuthProviderScopedData>(...)
+    /// ```
+    pub identity_data: serde_json::Value,
 
     pub provider: String,
 
@@ -128,10 +132,4 @@ pub struct Identity {
 
     /// format: email
     pub email: String,
-}
-
-#[derive(serde::Deserialize, Debug, Clone)]
-pub struct IdentityData {
-    pub email: String,
-    pub sub: String,
 }

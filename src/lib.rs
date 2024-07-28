@@ -1,6 +1,6 @@
 use reqwest::Client;
 
-pub(crate) mod auth;
+pub mod auth;
 mod client;
 pub mod errors;
 mod postgrest;
