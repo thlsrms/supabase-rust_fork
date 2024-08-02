@@ -1,6 +1,8 @@
 mod helper;
+mod mutifactor;
 mod oauth;
 
+pub use mutifactor::{FactorType, MFAChallenge, MFAEnroll, MFATotp};
 pub use oauth::{OAuthOptions, PKCECodeChallenge};
 
 use helper::{auth_error, handle_response_error, parse_auth_response};

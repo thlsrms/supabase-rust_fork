@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 /// Schema describing the user related to the issued access and refresh tokens
 /// as outlined in https://github.com/supabase/gotrue/blob/master/openapi.yaml
 ///
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct User {
     /// format: uuid
     pub id: String,
@@ -62,7 +64,7 @@ pub struct User {
     /// ```
     pub user_metadata: serde_json::Value,
 
-    pub factors: Option<Vec<MFAFactorSchema>>,
+    pub factors: Option<Vec<MFAFactor>>,
 
     pub identities: Vec<Identity>,
 
@@ -82,30 +84,39 @@ pub struct User {
 }
 
 /// Represents a MFA factor.
-#[derive(serde::Deserialize, Debug, Clone)]
-pub struct MFAFactorSchema {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MFAFactor {
     /// format: uuid
     pub id: String,
 
     /// Usually one of:
     ///     - verified
     ///     - unverified
-    pub status: String,
+    pub status: MFAFactorStatus,
 
-    pub friendly_name: String,
+    pub friendly_name: Option<String>,
 
     /// Usually one of:
     ///     - totp
     pub factor_type: String,
 }
 
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum MFAFactorStatus {
+    #[serde(alias = "verified")]
+    Verified,
+    #[serde(alias = "unverified")]
+    Unverified,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct AppMetadata {
     pub provider: String,
     pub providers: Vec<String>,
 }
 
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Identity {
     /// format: uuid
     pub id: String,
